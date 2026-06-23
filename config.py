@@ -25,8 +25,25 @@ from pathlib import Path
 # PATH CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────────
 
+import os as _os
+
 BASE_DIR      = Path(__file__).resolve().parent
-OUTPUT_DIR    = BASE_DIR / "output"
+
+# On Streamlit Cloud the app directory is read-only.
+# Use /tmp for all generated outputs when the local output/ dir is not writable.
+def _writable(p: Path) -> bool:
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception:
+        return False
+
+_local_out = BASE_DIR / "output"
+if _writable(_local_out):
+    OUTPUT_DIR = _local_out
+else:
+    OUTPUT_DIR = Path("/tmp/rdg_output")
+
 OUTPUT_DOCX   = OUTPUT_DIR / "docx"
 OUTPUT_PDF    = OUTPUT_DIR / "pdf"
 OUTPUT_EXCEL  = OUTPUT_DIR / "excel"
@@ -35,10 +52,15 @@ OUTPUT_TABS   = OUTPUT_DIR / "tables"
 DATA_DIR      = BASE_DIR / "data"
 TEMPLATES_DIR = BASE_DIR / "templates"
 
-for _d in [OUTPUT_DOCX, OUTPUT_PDF, OUTPUT_EXCEL, OUTPUT_FIGS, OUTPUT_TABS,
-           DATA_DIR / "stations", DATA_DIR / "rolling_stock",
-           DATA_DIR / "headway",  DATA_DIR / "traction_power", DATA_DIR / "rams"]:
+for _d in [OUTPUT_DOCX, OUTPUT_PDF, OUTPUT_EXCEL, OUTPUT_FIGS, OUTPUT_TABS]:
     _d.mkdir(parents=True, exist_ok=True)
+
+for _d in [DATA_DIR / "stations", DATA_DIR / "rolling_stock",
+           DATA_DIR / "headway",  DATA_DIR / "traction_power", DATA_DIR / "rams"]:
+    try:
+        _d.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AI PROVIDER CONFIGURATION

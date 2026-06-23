@@ -16,8 +16,16 @@ Architecture:
 
 import json
 import copy
-import streamlit as st
 from pathlib import Path
+
+# Lazy import: streamlit may not be available in test environments
+try:
+    import streamlit as st
+except ImportError:
+    class _FakeSt:
+        class session_state(dict): pass
+    st = _FakeSt()
+    st.session_state = {}
 
 from project_model import ProjectModel, DEFAULT_INPUTS
 from config import DATA_DIR

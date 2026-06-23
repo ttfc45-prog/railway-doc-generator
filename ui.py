@@ -337,7 +337,7 @@ def tab_signalling():
     st.subheader("📊 Headway Chart")
     from figures import figure_headway_breakdown
     img_bytes, _ = figure_headway_breakdown(hw.headway_breakdown, save=False)
-    st.image(img_bytes, use_column_width=True)
+    st.image(img_bytes, use_container_width=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -545,13 +545,13 @@ def tab_rams():
         img, _ = figure_availability_chart(ram.system_availability,
                                             PDB.get("system_availability_target_pct", 99.5),
                                             save=False)
-        st.image(img, use_column_width=True)
+        st.image(img, use_container_width=True)
     with col_b:
         img, _ = figure_reliability_curve(ram.mtbf_hours, save=False)
-        st.image(img, use_column_width=True)
+        st.image(img, use_container_width=True)
     with col_c:
         img, _ = figure_ram_pie(ram.system_availability, save=False)
-        st.image(img, use_column_width=True)
+        st.image(img, use_container_width=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -613,6 +613,10 @@ def tab_environmental():
 # ═══════════════════════════════════════════════════════════════
 
 def tab_export():
+    try:
+        import tempfile
+    except Exception:
+        pass
     st.header("📄 Export Documents")
 
     from config import DOCUMENT_TYPES
@@ -710,19 +714,19 @@ def tab_export():
     col1, col2 = st.columns(2)
     with col1:
         img, _ = figure_fleet_composition(ops.fleet_required, ops.reserve_trains, save=False)
-        st.image(img, caption="Fleet Composition", use_column_width=True)
+        st.image(img, caption="Fleet Composition", use_container_width=True)
         img, _ = figure_speed_comparison(ops.commercial_speed_kmh,
                                           p.get("max_speed_kmh", 80),
                                           p.get("design_speed_kmh", 90), save=False)
-        st.image(img, caption="Speed Comparison", use_column_width=True)
+        st.image(img, caption="Speed Comparison", use_container_width=True)
     with col2:
         img, _ = figure_train_capacity(p.get("seated_capacity", 306),
                                         p.get("standing_capacity_4ppm2", 612),
                                         p.get("standing_capacity_6ppm2", 918), save=False)
-        st.image(img, caption="Train Capacity", use_column_width=True)
+        st.image(img, caption="Train Capacity", use_container_width=True)
         img, _ = figure_capacity_demand(p.get("peak_demand_pphpd", 45000),
                                          ops.pphpd_4ppm2, ops.pphpd_6ppm2, save=False)
-        st.image(img, caption="Capacity vs Demand", use_column_width=True)
+        st.image(img, caption="Capacity vs Demand", use_container_width=True)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -773,26 +777,43 @@ def render():
         from audit_engine import render_audit_tab
         render_audit_tab(PDB.get_all())
     with tabs[15]:
-        _model = PDB.get_model()
-        from calculations import CalculationEngine as _CE
-        _cs15 = _CE.run(_model)
-        from dependency_graph import generate_parameter_dependency_graph
-        import streamlit as _st
-        _st.markdown("### Parameter Dependency Graph")
-        _st.caption("Full pipeline from ProjectModel inputs to CalculatedState to Documents.")
-        _g = generate_parameter_dependency_graph(_model, _cs15)
-        _st.json({k:v for k,v in _g["stats"].items()})
-        _st.markdown("#### Mermaid Source")
-        _st.code(_g["mermaid"], language="")
-        _st.markdown("#### SVG")
-        _st.components.v1.html(_g["svg"], height=600, scrolling=True)
-        _st.download_button("⬇  Download SVG", _g["svg"],
-            file_name="parameter_dependency_graph.svg", mime="image/svg+xml")
-        _st.download_button("⬇  Download Mermaid (.mmd)", _g["mermaid"],
-            file_name="parameter_dependency_graph.mmd", mime="text/plain")
+        try:
+            _model15 = PDB.get_model()
+            from calculations import CalculationEngine as _CE15
+            _cs15 = _CE15.run(_model15)
+            from dependency_graph import generate_parameter_dependency_graph
+            _g = generate_parameter_dependency_graph(_model15, _cs15)
+            st.markdown("### Parameter Dependency Graph")
+            st.caption("Full pipeline from ProjectModel inputs to CalculatedState to Documents.")
+            col_a, col_b, col_c, col_d = st.columns(4)
+            col_a.metric("Parameters", _g["stats"]["total_nodes"])
+            col_b.metric("Dependencies", _g["stats"]["total_edges"])
+            col_c.metric("Layers", _g["stats"]["layers"])
+            col_d.metric("Documents", _g["stats"]["doc_nodes"])
+            with st.expander("📊 Dependency Graph Diagram", expanded=True):
+                import base64 as _b64
+                _svg_b64 = _b64.b64encode(_g["svg"].encode()).decode()
+                st.markdown(
+                    f'<img src="data:image/svg+xml;base64,{_svg_b64}" style="width:100%;max-width:1200px" />',
+                    unsafe_allow_html=True
+                )
+            with st.expander("🔷 Mermaid Source (paste into mermaid.live)"):
+                st.code(_g["mermaid"], language="")
+            st.download_button("⬇  Download SVG", _g["svg"],
+                file_name="parameter_dependency_graph.svg", mime="image/svg+xml",
+                use_container_width=True)
+            st.download_button("⬇  Download Mermaid (.mmd)", _g["mermaid"],
+                file_name="parameter_dependency_graph.mmd", mime="text/plain",
+                use_container_width=True)
+        except Exception as _e15:
+            st.error(f"Dependency Graph error: {_e15}")
+            st.info("Try refreshing the page.")
     with tabs[16]:
-        _model2 = PDB.get_model()
-        from calculations import CalculationEngine as _CE2
-        _cs16 = _CE2.run(_model2)
-        from change_impact import render_impact_tab
-        render_impact_tab(_model2, _cs16)
+        try:
+            _model16 = PDB.get_model()
+            from calculations import CalculationEngine as _CE16
+            _cs16 = _CE16.run(_model16)
+            from change_impact import render_impact_tab
+            render_impact_tab(_model16, _cs16)
+        except Exception as _e16:
+            st.error(f"Change Impact error: {_e16}")
